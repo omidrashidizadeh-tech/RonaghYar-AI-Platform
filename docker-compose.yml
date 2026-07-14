@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ronaghyar}
+      POSTGRES_USER: ${POSTGRES_USER:-ronaghyar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ronaghyar_dev_password}
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ronaghyar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: ["redis_data:/data"]
+  backend:
+    build: ./backend
+    env_file: .env
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    volumes: ["./backend:/app"]
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+    ports: ["${FRONTEND_PORT:-18080}:3000"]
+    depends_on: [backend]
+    volumes: ["./frontend:/app", "/app/node_modules", "/app/.next"]
+volumes:
+  postgres_data:
+  redis_data:
