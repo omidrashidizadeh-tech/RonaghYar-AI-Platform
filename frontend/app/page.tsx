@@ -8,6 +8,12 @@ const tools = [
   ['ideas','ایده محتوا'],['ads','تبلیغات'],['hooks','هوک'],['hashtags','هشتگ هوشمند'],
   ['rewrite','بازنویسی'],['director','مدیر رشد'],['calendar','تقویم ۳۰ روزه'],
 ];
+const libraryBooks = [
+  {id:1,title:"استراتژی بازاریابی دیجیتال",author:"مرجع منتخب رونق‌یار",category:"دیجیتال مارکتینگ",language:"fa",format:"کتاب الکترونیکی"},
+  {id:2,title:"مدیریت برند در عصر هوش مصنوعی",author:"مرجع منتخب رونق‌یار",category:"مدیریت برند",language:"fa",format:"کتاب الکترونیکی"},
+  {id:3,title:"AI for Marketing Leaders",author:"RonaghYar Editorial",category:"هوش مصنوعی و بازاریابی",language:"en",format:"eBook"},
+];
+
 const brandFields = [
   ['brand_name','نام برند'],['slogan','شعار'],['website','وب‌سایت'],['business_type','حوزه فعالیت'],
   ['business_description','شرح کسب‌وکار'],['audience','مخاطب هدف'],['audience_pains','دردهای مخاطب'],
@@ -47,6 +53,8 @@ export default function Home() {
   const [product,setProduct] = useState({name:'',description:'',benefits:'',price:''});
   const [competitor,setCompetitor] = useState({name:'',strengths:'',weaknesses:'',positioning:''});
   const [brandData,setBrandData] = useState<any>({profile:{},products:[],competitors:[]});
+  const [libraryQuery,setLibraryQuery] = useState("");
+  const [libraryCategory,setLibraryCategory] = useState("همه");
   const [brandStep,setBrandStep] = useState(0);
   const brandWizard = [
     {title:'هویت برند',description:'اطلاعات پایه و جایگاه کسب‌وکار',fields:['brand_name','slogan','website','business_type','business_description']},
@@ -112,7 +120,7 @@ export default function Home() {
   if(!user) return <main className="min-h-screen grid place-items-center p-6"><section className="glass w-full max-w-md rounded-3xl p-8"><h1 className="text-3xl font-black mb-2">رونق‌یار AI</h1><p className="text-slate-400 mb-6">سیستم‌عامل هوشمند بازاریابی</p>{mode==='register'&&<input className="field" placeholder="نام" value={name} onChange={e=>setName(e.target.value)}/>}<input className="field" placeholder="ایمیل" value={email} onChange={e=>setEmail(e.target.value)}/><input type="password" className="field" placeholder="رمز عبور" value={password} onChange={e=>setPassword(e.target.value)}/><button onClick={auth} className="primary w-full">{mode==='register'?'ساخت حساب':'ورود'}</button><button onClick={()=>setMode(mode==='register'?'login':'register')} className="w-full mt-3 text-sky-300">{mode==='register'?'حساب دارم':'ساخت حساب جدید'}</button></section></main>;
 
   return <div className="min-h-screen grid md:grid-cols-[250px_1fr]">
-    <aside className="glass p-6 md:min-h-screen"><h2 className="text-2xl font-black mb-8">رونق‌یار <span className="text-sky-400">AI</span></h2>{[['studio','استودیو'],['brand','Brand Brain'],['history','تاریخچه'],['plans','اشتراک']].map(([k,l])=><button key={k} onClick={()=>{setView(k);if(k==='history')loadHistory();if(k==='brand')loadBrand()}} className={`w-full text-right p-3 rounded-xl mb-2 ${view===k?'bg-sky-500':'bg-slate-900/50'}`}>{l}</button>)}</aside>
+    <aside className="glass p-6 md:min-h-screen"><h2 className="text-2xl font-black mb-8">رونق‌یار <span className="text-sky-400">AI</span></h2>{[['studio','استودیو'],['brand','Brand Brain'],['library','کتابخانه و فروشگاه کتاب'],['history','تاریخچه'],['plans','اشتراک']].map(([k,l])=><button key={k} onClick={()=>{setView(k);if(k==='history')loadHistory();if(k==='brand')loadBrand()}} className={`w-full text-right p-3 rounded-xl mb-2 ${view===k?'bg-sky-500':'bg-slate-900/50'}`}>{l}</button>)}</aside>
     <main className="p-5 md:p-10"><header className="flex flex-wrap gap-4 justify-between items-center mb-8"><div><h1 className="text-3xl font-black">مرکز فرماندهی بازاریابی</h1><p className="text-slate-400">Brand Brain، چند هوش مصنوعی و ابزارهای رشد</p></div><span className="rounded-full bg-slate-800 px-4 py-2">{user.full_name} | {user.plan} | {user.daily_usage}</span></header>
 
       {view==='studio'&&<><section className="glass rounded-3xl p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">{tools.map(([k,l])=><button key={k} onClick={()=>setFeature(k)} className={`rounded-xl p-3 ${feature===k?'bg-sky-500':'bg-slate-900/70'}`}>{l}</button>)}</div><div className="grid md:grid-cols-2 gap-3 mb-4"><select className="field" value={provider} onChange={e=>setProvider(e.target.value)}><option value="">انتخاب خودکار مدل</option>{providers.map(p=><option key={p} value={p}>{p}</option>)}</select><label className="field flex items-center gap-3"><input type="checkbox" checked={compare} onChange={e=>setCompare(e.target.checked)}/> مقایسه چند مدل (Pro/Business)</label></div><textarea value={text} onChange={e=>setText(e.target.value)} className="field min-h-40" placeholder="هدف، محصول، مخاطب یا مسئله بازاریابی را توضیح بده..."/><button disabled={busy} onClick={generate} className="primary mt-4">{busy?'در حال تحلیل...':'اجرا با رونق‌یار'}</button></section><section className="glass rounded-3xl p-6 mt-5"><div className="flex justify-between"><h3 className="font-bold mb-4">خروجی</h3>{generationId&&<button onClick={improve} className="rounded-xl bg-emerald-600 px-4 py-2">بهبود خروجی</button>}</div><pre className="whitespace-pre-wrap leading-8 text-slate-200">{output||'هنوز خروجی‌ای تولید نشده است.'}</pre></section></>}
@@ -192,6 +200,36 @@ export default function Home() {
                 ? <button onClick={()=>setBrandStep(brandStep+1)} className="primary">مرحله بعد</button>
                 : <button onClick={()=>{saveBrand();setView('studio')}} className="primary">تکمیل و ورود به استودیو</button>}
             </div>
+          </div>
+        </div>
+      </section>}
+
+      {view==='library'&&<section className="space-y-5">
+        <div className="glass rounded-3xl p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">کتابخانه و فروشگاه کتاب</h2>
+              <p className="text-slate-400 mt-2">منابع منتخب مدیریت، برند، فروش و دیجیتال مارکتینگ.</p>
+            </div>
+            <span className="rounded-full bg-emerald-500/15 text-emerald-300 px-4 py-2 text-sm">نسخه Alpha</span>
+          </div>
+          <div className="grid md:grid-cols-[1fr_260px] gap-3 mb-6">
+            <input className="field mb-0" placeholder="جست‌وجوی عنوان، نویسنده یا موضوع..." value={libraryQuery} onChange={e=>setLibraryQuery(e.target.value)}/>
+            <select className="field mb-0" value={libraryCategory} onChange={e=>setLibraryCategory(e.target.value)}>
+              {['همه','دیجیتال مارکتینگ','مدیریت برند','هوش مصنوعی و بازاریابی'].map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {libraryBooks.filter((book:any)=>(libraryCategory==='همه'||book.category===libraryCategory)&&`${book.title} ${book.author} ${book.category}`.toLowerCase().includes(libraryQuery.toLowerCase())).map((book:any)=><article key={book.id} className="rounded-2xl border border-slate-800 bg-slate-950/55 p-5 flex flex-col min-h-64">
+              <div className="h-24 rounded-2xl bg-gradient-to-br from-sky-500/20 to-emerald-500/20 grid place-items-center mb-4"><span className="text-4xl">📚</span></div>
+              <span className="text-xs text-sky-300">{book.category}</span>
+              <h3 className="text-lg font-bold mt-2">{book.title}</h3>
+              <p className="text-slate-400 text-sm mt-2">{book.author}</p>
+              <div className="mt-auto pt-5 flex items-center justify-between gap-3">
+                <span className="text-sm text-slate-300">{book.format} · {book.language.toUpperCase()}</span>
+                <button className="primary text-sm">مشاهده جزئیات</button>
+              </div>
+            </article>)}
           </div>
         </div>
       </section>}
