@@ -27,9 +27,16 @@ def consume_usage(user: User):
     if user.usage_date != today:
         user.daily_usage = 0
         user.usage_date = today
+
     plan = get_plan(user.plan)
-    if user.daily_usage >= plan.daily_limit:
+
+    limits_enabled = (
+        settings.app_env.lower() == "production"
+        or settings.enforce_usage_limits
+    )
+    if limits_enabled and user.daily_usage >= plan.daily_limit:
         raise HTTPException(status_code=429, detail="سهمیه امروز تمام شده است.")
+
     return plan
 
 

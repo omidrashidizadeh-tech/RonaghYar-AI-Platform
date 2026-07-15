@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = 'RonaghYar AI Platform'
     api_prefix: str = '/api/v1'
+    app_env: str = 'development'
+    enforce_usage_limits: bool = False
     database_url: str = 'postgresql+psycopg://ronaghyar:ronaghyar_dev_password@db:5432/ronaghyar'
     redis_url: str = 'redis://redis:6379/0'
     jwt_secret: str = 'change-this-in-production'
