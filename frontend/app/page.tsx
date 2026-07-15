@@ -56,6 +56,7 @@ export default function Home() {
   const [libraryQuery,setLibraryQuery] = useState("");
   const [libraryCategory,setLibraryCategory] = useState("همه");
   const [brandStep,setBrandStep] = useState(0);
+  const [brandSaveState,setBrandSaveState] = useState<'idle'|'saving'|'saved'|'error'>('idle');
   const brandWizard = [
     {title:'هویت برند',description:'اطلاعات پایه و جایگاه کسب‌وکار',fields:['brand_name','slogan','website','business_type','business_description']},
     {title:'مخاطب',description:'شناخت دقیق مشتری ایده‌آل',fields:['audience','audience_pains','audience_goals','city','country']},
@@ -64,6 +65,9 @@ export default function Home() {
     {title:'رقبا',description:'فضای رقابتی و جایگاه بازار',fields:[]},
   ];
 
+  const completionFields = ['brand_name','business_type','business_description','audience','audience_pains','audience_goals','tone','brand_personality','value_proposition','preferred_cta'];
+  const brandCompletion = Math.round((completionFields.filter(key=>String(brand[key]||'').trim().length>0).length / completionFields.length) * 100);
+
   const loadUser = async()=>{try{setUser(await request('/me'))}catch{setUser(null)}};
   const loadProviders = async()=>{try{const d=await request('/ai/providers');setProviders(d.available||[])}catch{}};
   const loadBrand = async()=>{try{const d=await request('/brand');setBrandData(d);setBrand(d.profile||{})}catch(e:any){alert(e.message)}};
@@ -71,6 +75,14 @@ export default function Home() {
 
   useEffect(()=>{loadUser()},[]);
   useEffect(()=>{if(user){loadProviders();loadBrand();loadHistory()}},[user]);
+  useEffect(()=>{
+    if(!user) return;
+    if(Object.keys(brand).length===0) return;
+    setBrandSaveState('idle');
+    const timer=setTimeout(()=>{saveBrand(false)},900);
+    return ()=>clearTimeout(timer);
+  },[brand,user]);
+
 
   const auth = async()=>{
     try {
@@ -104,8 +116,16 @@ export default function Home() {
     } catch(e:any){alert(e.message)} finally{setBusy(false)}
   };
 
-  const saveBrand = async()=>{
-    try{await request('/brand',{method:'PUT',body:JSON.stringify(brand)});await loadBrand();alert('DNA برند ذخیره شد.')}catch(e:any){alert(e.message)}
+  const saveBrand = async(showMessage=true)=>{
+    try{
+      setBrandSaveState('saving');
+      await request('/brand',{method:'PUT',body:JSON.stringify(brand)});
+      setBrandSaveState('saved');
+      if(showMessage) alert('Brand Brain ذخیره شد.');
+    }catch(e:any){
+      setBrandSaveState('error');
+      if(showMessage) alert(e.message);
+    }
   };
   const addProduct = async()=>{
     try{await request('/brand/products',{method:'POST',body:JSON.stringify({...product,price:product.price?Number(product.price):null})});setProduct({name:'',description:'',benefits:'',price:''});await loadBrand()}catch(e:any){alert(e.message)}
@@ -132,7 +152,11 @@ export default function Home() {
               <h2 className="text-2xl font-bold">Brand Brain</h2>
               <p className="text-slate-400 mt-1">مغز برندت را مرحله‌به‌مرحله کامل کن.</p>
             </div>
-            <span className="rounded-full bg-slate-900 px-4 py-2 text-sm">مرحله {brandStep+1} از {brandWizard.length}</span>
+            <div className="min-w-56">
+              <div className="flex justify-between text-sm mb-2"><span>درصد تکمیل Brand Brain</span><b>{brandCompletion}%</b></div>
+              <div className="h-2 rounded-full bg-slate-800 overflow-hidden"><div className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all" style={{width:`${brandCompletion}%`}}/></div>
+              <div className="text-xs text-slate-400 mt-2">{brandSaveState==='saving'?'در حال ذخیره...':brandSaveState==='saved'?'ذخیره شد':brandSaveState==='error'?'خطا در ذخیره':'ذخیره خودکار فعال است'}</div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-7">
