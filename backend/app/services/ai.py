@@ -26,17 +26,73 @@ SYSTEM = (
 def _brand_context(brand: dict | None) -> str:
     if not brand:
         return ""
+
+    profile = brand.get("profile", brand)
+    products = brand.get("products", [])
+    competitors = brand.get("competitors", [])
+
     labels = {
-        "brand_name": "نام برند", "slogan": "شعار", "website": "وب‌سایت",
-        "business_type": "حوزه فعالیت", "business_description": "شرح کسب‌وکار",
-        "audience": "مخاطب هدف", "audience_pains": "دردهای مخاطب",
-        "audience_goals": "اهداف مخاطب", "tone": "لحن برند",
-        "brand_personality": "شخصیت برند", "value_proposition": "ارزش پیشنهادی",
-        "preferred_cta": "CTA ترجیحی", "preferred_words": "واژه‌های ترجیحی",
-        "forbidden_words": "واژه‌های ممنوع", "city": "شهر", "country": "کشور",
+        "brand_name": "نام برند",
+        "slogan": "شعار",
+        "website": "وب‌سایت",
+        "business_type": "حوزه فعالیت",
+        "business_description": "شرح کسب‌وکار",
+        "audience": "مخاطب هدف",
+        "audience_pains": "دردهای مخاطب",
+        "audience_goals": "اهداف مخاطب",
+        "tone": "لحن برند",
+        "brand_personality": "شخصیت برند",
+        "value_proposition": "ارزش پیشنهادی",
+        "preferred_cta": "CTA ترجیحی",
+        "preferred_words": "واژه‌های ترجیحی",
+        "forbidden_words": "واژه‌های ممنوع",
+        "city": "شهر",
+        "country": "کشور",
+        "language": "زبان",
     }
-    lines = [f"- {labels.get(k, k)}: {v}" for k, v in brand.items() if v and k in labels]
-    return "\nDNA برند:\n" + "\n".join(lines) if lines else ""
+
+    sections: list[str] = []
+
+    profile_lines = [
+        f"- {labels.get(key, key)}: {value}"
+        for key, value in profile.items()
+        if value and key in labels
+    ]
+    if profile_lines:
+        sections.append("پروفایل برند:\n" + "\n".join(profile_lines))
+
+    if products:
+        product_lines = []
+        for item in products:
+            details = [
+                item.get("description"),
+                f"مزایا: {item.get('benefits')}" if item.get("benefits") else None,
+                f"مخاطب محصول: {item.get('target_segment')}" if item.get("target_segment") else None,
+            ]
+            product_lines.append(
+                f"- {item.get('name')}: "
+                + " | ".join(part for part in details if part)
+            )
+        sections.append("محصولات و خدمات:\n" + "\n".join(product_lines))
+
+    if competitors:
+        competitor_lines = []
+        for item in competitors:
+            details = [
+                f"جایگاه: {item.get('positioning')}" if item.get("positioning") else None,
+                f"قوت: {item.get('strengths')}" if item.get("strengths") else None,
+                f"ضعف: {item.get('weaknesses')}" if item.get("weaknesses") else None,
+            ]
+            competitor_lines.append(
+                f"- {item.get('name')}: "
+                + " | ".join(part for part in details if part)
+            )
+        sections.append("رقبا:\n" + "\n".join(competitor_lines))
+
+    if not sections:
+        return ""
+
+    return "\n\nزمینه کامل Brand Brain:\n" + "\n\n".join(sections)
 
 
 def build_prompt(feature: str, text: str, brand: dict | None, outputs: int) -> str:

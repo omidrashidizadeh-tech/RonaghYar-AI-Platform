@@ -12,6 +12,7 @@ from app.schemas.platform import (
 from app.core.security import hash_password, verify_password, create_token, current_user
 from app.services.plans import get_plan
 from app.services.ai import generate, compare
+from app.services.brand_context import build_brand_context
 from app.core.config import settings
 
 router = APIRouter()
@@ -115,7 +116,7 @@ async def create_generation(payload: GeneratePayload, user: User = Depends(curre
     plan = consume_usage(user)
     if payload.feature in {"director", "calendar"} and not plan.advanced:
         raise HTTPException(403, "این قابلیت مخصوص Pro و Business است.")
-    brand = brand_dict(user.brand)
+    brand = build_brand_context(db, user)
     if payload.compare:
         if user.plan == "FREE": raise HTTPException(403, "Compare مخصوص Pro و Business است.")
         results = await compare(payload.feature, payload.text, brand, plan.outputs, settings.ai_compare_max_providers)
@@ -140,7 +141,7 @@ async def improve_generation(generation_id: int, payload: ImprovePayload, user: 
     plan = consume_usage(user)
     instruction = payload.instruction or "این خروجی را جذاب‌تر، دقیق‌تر، برندمحورتر و آماده‌تر برای انتشار کن."
     improvement_input = f"متن قبلی:\n{source.output_text}\n\nدرخواست بهبود:\n{instruction}"
-    output, score, ai_meta = await generate("rewrite", improvement_input, brand_dict(user.brand), plan.outputs, payload.preferred_provider)
+    output, score, ai_meta = await generate("rewrite", improvement_input, build_brand_context(db, user), plan.outputs, payload.preferred_provider)
     improved = Generation(
         user_id=user.id, feature=source.feature, input_text=improvement_input,
         output_text=output, quality_score=score, parent_generation_id=source.id,
