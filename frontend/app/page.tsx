@@ -47,6 +47,14 @@ export default function Home() {
   const [product,setProduct] = useState({name:'',description:'',benefits:'',price:''});
   const [competitor,setCompetitor] = useState({name:'',strengths:'',weaknesses:'',positioning:''});
   const [brandData,setBrandData] = useState<any>({profile:{},products:[],competitors:[]});
+  const [brandStep,setBrandStep] = useState(0);
+  const brandWizard = [
+    {title:'هویت برند',description:'اطلاعات پایه و جایگاه کسب‌وکار',fields:['brand_name','slogan','website','business_type','business_description']},
+    {title:'مخاطب',description:'شناخت دقیق مشتری ایده‌آل',fields:['audience','audience_pains','audience_goals','city','country']},
+    {title:'لحن و پیام',description:'شخصیت، واژگان و قواعد ارتباطی',fields:['tone','brand_personality','value_proposition','preferred_cta','preferred_words','forbidden_words']},
+    {title:'محصولات',description:'محصولات و خدماتی که رونق‌یار باید بشناسد',fields:[]},
+    {title:'رقبا',description:'فضای رقابتی و جایگاه بازار',fields:[]},
+  ];
 
   const loadUser = async()=>{try{setUser(await request('/me'))}catch{setUser(null)}};
   const loadProviders = async()=>{try{const d=await request('/ai/providers');setProviders(d.available||[])}catch{}};
@@ -97,6 +105,8 @@ export default function Home() {
   const addCompetitor = async()=>{
     try{await request('/brand/competitors',{method:'POST',body:JSON.stringify(competitor)});setCompetitor({name:'',strengths:'',weaknesses:'',positioning:''});await loadBrand()}catch(e:any){alert(e.message)}
   };
+  const deleteProduct = async(id:number)=>{await request(`/brand/products/${id}`,{method:'DELETE'});await loadBrand()};
+  const deleteCompetitor = async(id:number)=>{await request(`/brand/competitors/${id}`,{method:'DELETE'});await loadBrand()};
   const favorite = async(id:number)=>{await request(`/generations/${id}/favorite`,{method:'POST'});await loadHistory()};
 
   if(!user) return <main className="min-h-screen grid place-items-center p-6"><section className="glass w-full max-w-md rounded-3xl p-8"><h1 className="text-3xl font-black mb-2">رونق‌یار AI</h1><p className="text-slate-400 mb-6">سیستم‌عامل هوشمند بازاریابی</p>{mode==='register'&&<input className="field" placeholder="نام" value={name} onChange={e=>setName(e.target.value)}/>}<input className="field" placeholder="ایمیل" value={email} onChange={e=>setEmail(e.target.value)}/><input type="password" className="field" placeholder="رمز عبور" value={password} onChange={e=>setPassword(e.target.value)}/><button onClick={auth} className="primary w-full">{mode==='register'?'ساخت حساب':'ورود'}</button><button onClick={()=>setMode(mode==='register'?'login':'register')} className="w-full mt-3 text-sky-300">{mode==='register'?'حساب دارم':'ساخت حساب جدید'}</button></section></main>;
@@ -107,7 +117,84 @@ export default function Home() {
 
       {view==='studio'&&<><section className="glass rounded-3xl p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">{tools.map(([k,l])=><button key={k} onClick={()=>setFeature(k)} className={`rounded-xl p-3 ${feature===k?'bg-sky-500':'bg-slate-900/70'}`}>{l}</button>)}</div><div className="grid md:grid-cols-2 gap-3 mb-4"><select className="field" value={provider} onChange={e=>setProvider(e.target.value)}><option value="">انتخاب خودکار مدل</option>{providers.map(p=><option key={p} value={p}>{p}</option>)}</select><label className="field flex items-center gap-3"><input type="checkbox" checked={compare} onChange={e=>setCompare(e.target.checked)}/> مقایسه چند مدل (Pro/Business)</label></div><textarea value={text} onChange={e=>setText(e.target.value)} className="field min-h-40" placeholder="هدف، محصول، مخاطب یا مسئله بازاریابی را توضیح بده..."/><button disabled={busy} onClick={generate} className="primary mt-4">{busy?'در حال تحلیل...':'اجرا با رونق‌یار'}</button></section><section className="glass rounded-3xl p-6 mt-5"><div className="flex justify-between"><h3 className="font-bold mb-4">خروجی</h3>{generationId&&<button onClick={improve} className="rounded-xl bg-emerald-600 px-4 py-2">بهبود خروجی</button>}</div><pre className="whitespace-pre-wrap leading-8 text-slate-200">{output||'هنوز خروجی‌ای تولید نشده است.'}</pre></section></>}
 
-      {view==='brand'&&<section className="space-y-5"><div className="glass rounded-3xl p-6"><h2 className="text-2xl font-bold mb-5">DNA برند</h2><div className="grid md:grid-cols-2 gap-3">{brandFields.map(([k,l])=><textarea key={k} className="field min-h-14" placeholder={l} value={brand[k]||''} onChange={e=>setBrand({...brand,[k]:e.target.value})}/>)}</div><button onClick={saveBrand} className="primary mt-4">ذخیره Brand Brain</button></div><div className="grid lg:grid-cols-2 gap-5"><div className="glass rounded-3xl p-6"><h3 className="font-bold mb-3">محصول یا خدمت</h3><input className="field" placeholder="نام" value={product.name} onChange={e=>setProduct({...product,name:e.target.value})}/><textarea className="field" placeholder="توضیح" value={product.description} onChange={e=>setProduct({...product,description:e.target.value})}/><textarea className="field" placeholder="مزایا" value={product.benefits} onChange={e=>setProduct({...product,benefits:e.target.value})}/><input className="field" placeholder="قیمت" value={product.price} onChange={e=>setProduct({...product,price:e.target.value})}/><button className="primary" onClick={addProduct}>افزودن محصول</button><div className="mt-4 space-y-2">{brandData.products?.map((p:any)=><div key={p.id} className="bg-slate-900/60 p-3 rounded-xl">{p.name}</div>)}</div></div><div className="glass rounded-3xl p-6"><h3 className="font-bold mb-3">رقبا</h3><input className="field" placeholder="نام رقیب" value={competitor.name} onChange={e=>setCompetitor({...competitor,name:e.target.value})}/><textarea className="field" placeholder="نقاط قوت" value={competitor.strengths} onChange={e=>setCompetitor({...competitor,strengths:e.target.value})}/><textarea className="field" placeholder="نقاط ضعف" value={competitor.weaknesses} onChange={e=>setCompetitor({...competitor,weaknesses:e.target.value})}/><textarea className="field" placeholder="جایگاه بازار" value={competitor.positioning} onChange={e=>setCompetitor({...competitor,positioning:e.target.value})}/><button className="primary" onClick={addCompetitor}>افزودن رقیب</button><div className="mt-4 space-y-2">{brandData.competitors?.map((c:any)=><div key={c.id} className="bg-slate-900/60 p-3 rounded-xl">{c.name}</div>)}</div></div></div></section>}
+      {view==='brand'&&<section className="space-y-5">
+        <div className="glass rounded-3xl p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">Brand Brain</h2>
+              <p className="text-slate-400 mt-1">مغز برندت را مرحله‌به‌مرحله کامل کن.</p>
+            </div>
+            <span className="rounded-full bg-slate-900 px-4 py-2 text-sm">مرحله {brandStep+1} از {brandWizard.length}</span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-7">
+            {brandWizard.map((step:any,index:number)=><button key={step.title} onClick={()=>setBrandStep(index)} className={`rounded-xl p-3 text-sm transition ${brandStep===index?'bg-sky-500 text-white':'bg-slate-900/70 text-slate-300'}`}>
+              <span className="block font-bold">{index+1}. {step.title}</span>
+            </button>)}
+          </div>
+
+          <div className="mb-5">
+            <h3 className="text-xl font-bold">{brandWizard[brandStep].title}</h3>
+            <p className="text-slate-400 mt-1">{brandWizard[brandStep].description}</p>
+          </div>
+
+          {brandStep<3&&<div className="grid md:grid-cols-2 gap-3">
+            {brandWizard[brandStep].fields.map((key:string)=>{
+              const field=brandFields.find(([k])=>k===key);
+              const label=field?.[1]||key;
+              const longField=['business_description','audience','audience_pains','audience_goals','brand_personality','value_proposition','preferred_cta','preferred_words','forbidden_words'].includes(key);
+              return longField
+                ? <textarea key={key} className="field min-h-28" placeholder={label} value={brand[key]||''} onChange={e=>setBrand({...brand,[key]:e.target.value})}/>
+                : <input key={key} className="field" placeholder={label} value={brand[key]||''} onChange={e=>setBrand({...brand,[key]:e.target.value})}/>;
+            })}
+          </div>}
+
+          {brandStep===3&&<div className="grid lg:grid-cols-[1fr_1.15fr] gap-5">
+            <div className="rounded-2xl bg-slate-950/40 p-4">
+              <input className="field" placeholder="نام محصول یا خدمت" value={product.name} onChange={e=>setProduct({...product,name:e.target.value})}/>
+              <textarea className="field min-h-24" placeholder="توضیح محصول" value={product.description} onChange={e=>setProduct({...product,description:e.target.value})}/>
+              <textarea className="field min-h-24" placeholder="مزیت‌ها و نتایج اصلی" value={product.benefits} onChange={e=>setProduct({...product,benefits:e.target.value})}/>
+              <input className="field" placeholder="قیمت (اختیاری)" value={product.price} onChange={e=>setProduct({...product,price:e.target.value})}/>
+              <button className="primary w-full" onClick={addProduct}>افزودن محصول</button>
+            </div>
+            <div className="space-y-3">
+              {brandData.products?.length===0&&<p className="text-slate-400">هنوز محصولی ثبت نشده است.</p>}
+              {brandData.products?.map((p:any)=><article key={p.id} className="bg-slate-950/60 border border-slate-800 p-4 rounded-2xl">
+                <div className="flex justify-between gap-3"><b>{p.name}</b><button onClick={()=>deleteProduct(p.id)} className="text-rose-300">حذف</button></div>
+                {p.description&&<p className="text-slate-300 mt-2">{p.description}</p>}
+                {p.benefits&&<p className="text-emerald-300 mt-2 text-sm">{p.benefits}</p>}
+              </article>)}
+            </div>
+          </div>}
+
+          {brandStep===4&&<div className="grid lg:grid-cols-[1fr_1.15fr] gap-5">
+            <div className="rounded-2xl bg-slate-950/40 p-4">
+              <input className="field" placeholder="نام رقیب" value={competitor.name} onChange={e=>setCompetitor({...competitor,name:e.target.value})}/>
+              <textarea className="field min-h-24" placeholder="نقاط قوت" value={competitor.strengths} onChange={e=>setCompetitor({...competitor,strengths:e.target.value})}/>
+              <textarea className="field min-h-24" placeholder="نقاط ضعف" value={competitor.weaknesses} onChange={e=>setCompetitor({...competitor,weaknesses:e.target.value})}/>
+              <textarea className="field min-h-24" placeholder="جایگاه بازار" value={competitor.positioning} onChange={e=>setCompetitor({...competitor,positioning:e.target.value})}/>
+              <button className="primary w-full" onClick={addCompetitor}>افزودن رقیب</button>
+            </div>
+            <div className="space-y-3">
+              {brandData.competitors?.length===0&&<p className="text-slate-400">هنوز رقیبی ثبت نشده است.</p>}
+              {brandData.competitors?.map((c:any)=><article key={c.id} className="bg-slate-950/60 border border-slate-800 p-4 rounded-2xl">
+                <div className="flex justify-between gap-3"><b>{c.name}</b><button onClick={()=>deleteCompetitor(c.id)} className="text-rose-300">حذف</button></div>
+                {c.positioning&&<p className="text-slate-300 mt-2">{c.positioning}</p>}
+              </article>)}
+            </div>
+          </div>}
+
+          <div className="flex flex-wrap justify-between gap-3 mt-6 border-t border-slate-800 pt-5">
+            <button disabled={brandStep===0} onClick={()=>setBrandStep(Math.max(0,brandStep-1))} className="rounded-xl bg-slate-800 px-5 py-3 disabled:opacity-40">مرحله قبل</button>
+            <div className="flex gap-3">
+              <button onClick={saveBrand} className="rounded-xl bg-emerald-600 px-5 py-3 font-bold">ذخیره اطلاعات</button>
+              {brandStep<brandWizard.length-1
+                ? <button onClick={()=>setBrandStep(brandStep+1)} className="primary">مرحله بعد</button>
+                : <button onClick={()=>{saveBrand();setView('studio')}} className="primary">تکمیل و ورود به استودیو</button>}
+            </div>
+          </div>
+        </div>
+      </section>}
 
       {view==='history'&&<section className="glass rounded-3xl p-6"><h2 className="text-2xl font-bold mb-5">تاریخچه و خروجی‌های منتخب</h2><div className="space-y-4">{history.map(item=><article key={item.id} className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4"><div className="flex justify-between gap-3"><b>{item.feature} — امتیاز {item.quality_score}</b><button onClick={()=>favorite(item.id)}>{item.favorite?'★':'☆'}</button></div><p className="whitespace-pre-wrap leading-7 mt-3 text-slate-300">{item.output_text}</p></article>)}</div></section>}
 
