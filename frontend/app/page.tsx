@@ -1,6 +1,8 @@
 'use client';
 
 import {useEffect, useState} from 'react';
+import {Sidebar} from '../components/layout/Sidebar';
+import {Topbar} from '../components/layout/Topbar';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 const tools = [
@@ -43,6 +45,7 @@ export default function Home() {
   const [text,setText] = useState('');
   const [output,setOutput] = useState('');
   const [generationId,setGenerationId] = useState<number|null>(null);
+  const [strategy,setStrategy] = useState<any>(null);
   const [busy,setBusy] = useState(false);
   const [view,setView] = useState('studio');
   const [providers,setProviders] = useState<string[]>([]);
@@ -94,13 +97,13 @@ export default function Home() {
   };
 
   const generate = async()=>{
-    setBusy(true); setOutput(''); setGenerationId(null);
+    setBusy(true); setOutput(''); setGenerationId(null); setStrategy(null);
     try {
       const data = await request('/generate',{method:'POST',body:JSON.stringify({feature,text,preferred_provider:provider||null,compare})});
       if(data.mode==='compare') {
         setOutput(data.results.map((r:any)=>`【${r.provider} / ${r.model}】\nامتیاز: ${r.quality_score}\n${r.output}`).join('\n\n────────────────\n\n'));
       } else {
-        setOutput(data.output); setGenerationId(data.id);
+        setOutput(data.output); setGenerationId(data.id); setStrategy(data.ai?.strategy||null);
       }
       await loadUser(); await loadHistory();
     } catch(e:any) { setOutput('خطا: '+e.message); }
@@ -112,7 +115,7 @@ export default function Home() {
     setBusy(true);
     try {
       const data=await request(`/generations/${generationId}/improve`,{method:'POST',body:JSON.stringify({preferred_provider:provider||null})});
-      setOutput(data.output); setGenerationId(data.id); await loadHistory();
+      setOutput(data.output); setGenerationId(data.id); setStrategy(data.ai?.strategy||null); await loadHistory();
     } catch(e:any){alert(e.message)} finally{setBusy(false)}
   };
 
@@ -139,11 +142,30 @@ export default function Home() {
 
   if(!user) return <main className="min-h-screen grid place-items-center p-6"><section className="glass w-full max-w-md rounded-3xl p-8"><h1 className="text-3xl font-black mb-2">رونق‌یار AI</h1><p className="text-slate-400 mb-6">سیستم‌عامل هوشمند بازاریابی</p>{mode==='register'&&<input className="field" placeholder="نام" value={name} onChange={e=>setName(e.target.value)}/>}<input className="field" placeholder="ایمیل" value={email} onChange={e=>setEmail(e.target.value)}/><input type="password" className="field" placeholder="رمز عبور" value={password} onChange={e=>setPassword(e.target.value)}/><button onClick={auth} className="primary w-full">{mode==='register'?'ساخت حساب':'ورود'}</button><button onClick={()=>setMode(mode==='register'?'login':'register')} className="w-full mt-3 text-sky-300">{mode==='register'?'حساب دارم':'ساخت حساب جدید'}</button></section></main>;
 
-  return <div className="min-h-screen grid md:grid-cols-[250px_1fr]">
-    <aside className="glass p-6 md:min-h-screen"><h2 className="text-2xl font-black mb-8">رونق‌یار <span className="text-sky-400">AI</span></h2>{[['studio','استودیو'],['brand','Brand Brain'],['library','کتابخانه و فروشگاه کتاب'],['history','تاریخچه'],['plans','اشتراک']].map(([k,l])=><button key={k} onClick={()=>{setView(k);if(k==='history')loadHistory();if(k==='brand')loadBrand()}} className={`w-full text-right p-3 rounded-xl mb-2 ${view===k?'bg-sky-500':'bg-slate-900/50'}`}>{l}</button>)}</aside>
-    <main className="p-5 md:p-10"><header className="flex flex-wrap gap-4 justify-between items-center mb-8"><div><h1 className="text-3xl font-black">مرکز فرماندهی بازاریابی</h1><p className="text-slate-400">Brand Brain، چند هوش مصنوعی و ابزارهای رشد</p></div><span className="rounded-full bg-slate-800 px-4 py-2">{user.full_name} | {user.plan} | {user.daily_usage}</span></header>
+  return <div className="min-h-screen grid md:grid-cols-[280px_1fr] bg-[#07111f]">
+    <Sidebar
+      view={view}
+      onNavigate={(nextView)=>{
+        setView(nextView);
+        if(nextView==='history') loadHistory();
+        if(nextView==='brand') loadBrand();
+      }}
+    />
+    <main className="min-w-0 p-5 md:p-8 lg:p-10">
+      <Topbar user={user} />
 
-      {view==='studio'&&<><section className="glass rounded-3xl p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">{tools.map(([k,l])=><button key={k} onClick={()=>setFeature(k)} className={`rounded-xl p-3 ${feature===k?'bg-sky-500':'bg-slate-900/70'}`}>{l}</button>)}</div><div className="grid md:grid-cols-2 gap-3 mb-4"><select className="field" value={provider} onChange={e=>setProvider(e.target.value)}><option value="">انتخاب خودکار مدل</option>{providers.map(p=><option key={p} value={p}>{p}</option>)}</select><label className="field flex items-center gap-3"><input type="checkbox" checked={compare} onChange={e=>setCompare(e.target.checked)}/> مقایسه چند مدل (Pro/Business)</label></div><textarea value={text} onChange={e=>setText(e.target.value)} className="field min-h-40" placeholder="هدف، محصول، مخاطب یا مسئله بازاریابی را توضیح بده..."/><button disabled={busy} onClick={generate} className="primary mt-4">{busy?'در حال تحلیل...':'اجرا با رونق‌یار'}</button></section><section className="glass rounded-3xl p-6 mt-5"><div className="flex justify-between"><h3 className="font-bold mb-4">خروجی</h3>{generationId&&<button onClick={improve} className="rounded-xl bg-emerald-600 px-4 py-2">بهبود خروجی</button>}</div><pre className="whitespace-pre-wrap leading-8 text-slate-200">{output||'هنوز خروجی‌ای تولید نشده است.'}</pre></section></>}
+      {view==='studio'&&<><section className="glass rounded-3xl p-6"><div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">{tools.map(([k,l])=><button key={k} onClick={()=>setFeature(k)} className={`rounded-xl p-3 ${feature===k?'bg-sky-500':'bg-slate-900/70'}`}>{l}</button>)}</div><div className="grid md:grid-cols-2 gap-3 mb-4"><select className="field" value={provider} onChange={e=>setProvider(e.target.value)}><option value="">انتخاب خودکار مدل</option>{providers.map(p=><option key={p} value={p}>{p}</option>)}</select><label className="field flex items-center gap-3"><input type="checkbox" checked={compare} onChange={e=>setCompare(e.target.checked)}/> مقایسه چند مدل (Pro/Business)</label></div><textarea value={text} onChange={e=>setText(e.target.value)} className="field min-h-40" placeholder="هدف، محصول، مخاطب یا مسئله بازاریابی را توضیح بده..."/><button disabled={busy} onClick={generate} className="primary mt-4">{busy?'در حال تحلیل...':'اجرا با رونق‌یار'}</button></section><section className="glass rounded-3xl p-6 mt-5"><div className="flex justify-between"><h3 className="font-bold mb-4">خروجی</h3>{generationId&&<button onClick={improve} className="rounded-xl bg-emerald-600 px-4 py-2">بهبود خروجی</button>}</div><pre className="whitespace-pre-wrap leading-8 text-slate-200">{output||'هنوز خروجی‌ای تولید نشده است.'}</pre>{strategy&&<div className="mt-5 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
+<h4 className="font-bold mb-4">چرا این خروجی ساخته شد؟</h4>
+<div className="grid md:grid-cols-2 gap-3 text-sm">
+<div><span className="text-slate-400">هدف:</span> {strategy.objective}</div>
+<div><span className="text-slate-400">مرحله قیف:</span> {strategy.funnel_stage}</div>
+<div><span className="text-slate-400">چارچوب:</span> {strategy.framework}</div>
+<div><span className="text-slate-400">احساس:</span> {strategy.emotion}</div>
+<div><span className="text-slate-400">CTA:</span> {strategy.cta_type}</div>
+<div><span className="text-slate-400">لحن:</span> {strategy.tone}</div>
+</div>
+<ul className="mt-4 space-y-2 text-slate-300 text-sm">{strategy.rationale?.map((item:string,index:number)=><li key={index}>✓ {item}</li>)}</ul>
+</div>}</section></>}
 
       {view==='brand'&&<section className="space-y-5">
         <div className="glass rounded-3xl p-6">
